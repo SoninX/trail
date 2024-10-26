@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Chatbot</title>
+</head>
+<body>
+    <h1>Chat with PDF Model</h1>
+    <form id="chat-form">
+        <textarea id="user-input" name="user_input" rows="4" cols="50" placeholder="Ask about the PDF content..."></textarea><br>
+        <button type="submit">Submit</button>
+    </form>
+    <div id="response"></div>
+
+    <script>
+        document.getElementById("chat-form").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const userInput = document.getElementById("user-input").value;
+
+            const response = await fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: `user_input=${encodeURIComponent(userInput)}`
+            });
+
+            const data = await response.json();
+            document.getElementById("response").innerText = data.response;
+        });
+    </script>
+</body>
+</html>
