@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Investment Evaluation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 50%;
+            margin: 0 auto;
+            padding: 30px;
+            background-color: #fff;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            margin-top: 50px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            font-size: 16px;
+            margin-bottom: 10px;
+            display: block;
+            color: #333;
+        }
+        input[type="text"], input[type="submit"] {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .dropdown {
+            position: absolute;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+            z-index: 999;
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: white;
+        }
+        .dropdown div {
+            padding: 10px;
+            cursor: pointer;
+        }
+        .dropdown div:hover {
+            background-color: #f4f4f4;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Stock Investment Evaluation</h1>
+        <form id="stockForm" method="POST">
+            <label for="stockName">Stock Name (Ticker)</label>
+            <input type="text" id="stockName" name="stockName" required autocomplete="off">
+            <div id="suggestions" class="dropdown"></div>
+
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="evaluationMethods" value="fundamental"> Fundamental Analysis</label>
+                <label><input type="checkbox" name="evaluationMethods" value="technical"> Technical Analysis</label>
+                <label><input type="checkbox" name="evaluationMethods" value="ddm"> Dividend Discount Model (DDM)</label>
+                <label><input type="checkbox" name="evaluationMethods" value="valueInvesting"> Value Investing</label>
+                <label><input type="checkbox" name="evaluationMethods" value="growthInvesting"> Growth Investing</label>
+                <label><input type="checkbox" name="evaluationMethods" value="modifiedFlowchart"> Modified Investment Analysis Flowchart</label>
+            </div>
+
+            <input type="submit" value="Evaluate Investment">
+        </form>
+
+        <div class="result" id="result" style="display:none;">
+            <h3>Evaluation Result</h3>
+            <p id="evaluationMessage"></p>
+            <h4>Detailed Report:</h4>
+            <p id="detailedReport"></p>
+        </div>
+    </div>
+
+    <script>
+        const stockInput = document.getElementById('stockName');
+        const suggestionsDiv = document.getElementById('suggestions');
+
+        // Allow user to select from suggestions
+        stockInput.addEventListener('input', function() {
+            const query = stockInput.value.trim().toUpperCase();
+            if (query.length < 1) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+
+            // Fetch stock suggestions based on input
+            fetch(`/suggest-stocks?query=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.suggestions.length > 0) {
+                        suggestionsDiv.innerHTML = data.suggestions.map(stock => `<div class="suggestion-item">${stock}</div>`).join('');
+                        suggestionsDiv.style.display = 'block';
+                    } else {
+                        suggestionsDiv.innerHTML = `<div>No results for this stock</div>`;
+                        suggestionsDiv.style.display = 'block';
+                    }
+                })
+                .catch(() => {
+                    suggestionsDiv.innerHTML = `<div>Error fetching data</div>`;
+                    suggestionsDiv.style.display = 'block';
+                });
+        });
+
+        // Hide the dropdown and populate the stock input with the selected stock
+        suggestionsDiv.addEventListener('click', function(event) {
+            if (event.target.classList.contains('suggestion-item')) {
+                stockInput.value = event.target.textContent;
+                suggestionsDiv.style.display = 'none';
+            }
+        });
+
+        // Submit the form for evaluation
+        document.getElementById('stockForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const stockName = stockInput.value;
+            const evaluationMethods = Array.from(document.querySelectorAll('input[name="evaluationMethods"]:checked')).map(checkbox => checkbox.value);
+
+            if (evaluationMethods.length < 1 || evaluationMethods.length > 2) {
+                alert('Please select 1 or 2 evaluation methods.');
+                return;
+            }
+
+            fetch('/evaluate-stock', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stockName, evaluationMethods })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('evaluationMessage').textContent = data.message;
+                document.getElementById('detailedReport').textContent = data.report;
+                document.getElementById('result').style.display = 'block';
+
+                // Send data to the AI agent for further processing (Assuming an AI endpoint exists)
+                fetch('/send-to-ai', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stockName, evaluationMethods, detailedReport: data.report })
+                })
+                .then(response => response.json())
+                .then(aiResponse => {
+                    // Process AI response and display final report
+                    document.getElementById('detailedReport').textContent += "\n\nAI Compiled Report:\n" + aiResponse.report;
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('There was an error processing your request.');
+            });
+        });
+    </script>
+
+</body>
+</html>
