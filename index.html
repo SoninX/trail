@@ -3,30 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Chatbot</title>
+    <title>Stock Investment Evaluation Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 50%;
+            margin: 0 auto;
+            padding: 30px;
+            background-color: #fff;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            margin-top: 50px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            font-size: 16px;
+            margin-bottom: 10px;
+            display: block;
+            color: #333;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        input[type="submit"] {
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Chat with PDF Model</h1>
-    <form id="chat-form">
-        <textarea id="user-input" name="user_input" rows="4" cols="50" placeholder="Ask about the PDF content..."></textarea><br>
-        <button type="submit">Submit</button>
-    </form>
-    <div id="response"></div>
+
+    <div class="container">
+        <h1>Stock Investment Evaluation</h1>
+        <form id="stockForm" method="POST">
+            <label for="revenueGrowth">Revenue Growth (%)</label>
+            <input type="number" id="revenueGrowth" name="revenueGrowth" required>
+
+            <label for="peRatio">P/E Ratio</label>
+            <input type="number" id="peRatio" name="peRatio" required>
+
+            <label for="pegRatio">PEG Ratio</label>
+            <input type="number" id="pegRatio" name="pegRatio" required>
+
+            <label for="roe">ROE (%)</label>
+            <input type="number" id="roe" name="roe" required>
+
+            <label for="quickRatio">Quick Ratio</label>
+            <input type="number" id="quickRatio" name="quickRatio" required>
+
+            <label for="freeCashFlow">Free Cash Flow ($)</label>
+            <input type="number" id="freeCashFlow" name="freeCashFlow" required>
+
+            <input type="submit" value="Evaluate Investment">
+        </form>
+
+        <div class="result" id="result" style="display:none;">
+            <h3>Evaluation Result</h3>
+            <p id="evaluationMessage"></p>
+        </div>
+    </div>
 
     <script>
-        document.getElementById("chat-form").addEventListener("submit", async function (e) {
-            e.preventDefault();
-            const userInput = document.getElementById("user-input").value;
-
-            const response = await fetch("/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: `user_input=${encodeURIComponent(userInput)}`
+        // Simulating the form submission for this demo
+        document.getElementById('stockForm').addEventListener('submit', function(event) {
+            event.preventDefault();  // Prevent the form from actually submitting
+            
+            // Collect input data
+            const revenueGrowth = parseFloat(document.getElementById('revenueGrowth').value);
+            const peRatio = parseFloat(document.getElementById('peRatio').value);
+            const pegRatio = parseFloat(document.getElementById('pegRatio').value);
+            const roe = parseFloat(document.getElementById('roe').value);
+            const quickRatio = parseFloat(document.getElementById('quickRatio').value);
+            const freeCashFlow = parseFloat(document.getElementById('freeCashFlow').value);
+            
+            // Evaluate based on the flowchart
+            let resultMessage = evaluateStock({
+                revenueGrowth,
+                peRatio,
+                pegRatio,
+                roe,
+                quickRatio,
+                freeCashFlow
             });
 
-            const data = await response.json();
-            document.getElementById("response").innerText = data.response;
+            // Display the result
+            document.getElementById('evaluationMessage').textContent = resultMessage;
+            document.getElementById('result').style.display = 'block';
         });
+
+        // Function to evaluate the stock based on the criteria
+        function evaluateStock(data) {
+            if (data.revenueGrowth < 10) {
+                return "Not recommended: Low revenue growth";
+            }
+            if (data.peRatio >= 25) {
+                return "Not recommended: Likely overvalued";
+            }
+            if (data.pegRatio >= 2) {
+                return "Not recommended: Low profit growth";
+            }
+            if (data.roe < 5) {
+                return "Not recommended: Weak profitability";
+            }
+            if (data.quickRatio <= 1.5) {
+                return "Not recommended: Liquidity issues";
+            }
+            if (data.freeCashFlow <= 0) {
+                return "Not recommended: Cash flow problems";
+            }
+            return "Invest: This stock meets the criteria for a good investment";
+        }
     </script>
+
 </body>
 </html>
