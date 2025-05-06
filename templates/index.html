@@ -110,7 +110,8 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.suggestions.length > 0) {
-                        suggestionsDiv.innerHTML = data.suggestions.map(stock => `<div class="suggestion-item">${stock}</div>`).join('');
+                        suggestionsDiv.innerHTML = data.suggestions.map(stock => `<div class="suggestion-item" data-symbol="${stock.symbol}">${stock.symbol} - ${stock.name || stock.description || ''}</div>`)
+                        .join('');
                         suggestionsDiv.style.display = 'block';
                     } else {
                         suggestionsDiv.innerHTML = `<div>No results for this stock</div>`;

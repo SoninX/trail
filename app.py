@@ -4,7 +4,6 @@ from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
 
-# Set your API key
 co = cohere.Client("xhJQhunewDW9s173oBXkAQu3q1XUAWNAKK8WjI6n")
 # Helper function to get stock symbols based on user input (beginning with the query)
 def get_stock_suggestions(query):
@@ -36,6 +35,9 @@ def evaluate_stock():
     info = stock.info
     history = stock.history(period="6mo")
 
+    # Brief Report
+    brief_report = f"Evaluation of stock: {stock_name}\n"
+
     # Fundamental Analysis
     if 'fundamental' in evaluation_methods:
         eps = info.get('trailingEps', 'N/A')
@@ -44,7 +46,6 @@ def evaluate_stock():
         debt_to_equity = info.get('debtToEquity', 'N/A')
 
         fundamental_summary = f"""
-        Fundamental Analysis:
         - EPS: {eps}
         - P/E Ratio: {pe_ratio}
         - ROE: {roe}
@@ -59,7 +60,6 @@ def evaluate_stock():
         current_price = history['Close'].iloc[-1]
 
         technical_summary = f"""
-        Technical Analysis:
         - Current Price: {current_price:.2f}
         - 50-day Moving Average: {moving_avg_50:.2f}
         - 200-day Moving Average: {moving_avg_200}
@@ -77,7 +77,6 @@ def evaluate_stock():
             ddm_value = 'N/A'
 
         ddm_summary = f"""
-        Dividend Discount Model:
         - Dividend: {dividend}
         - Assumed Required Return: {required_return}
         - Estimated Value (DDM): {ddm_value}
@@ -93,7 +92,6 @@ def evaluate_stock():
             margin_of_safety = ((intrinsic_value - current_price) / current_price) * 100
 
         value_summary = f"""
-        Value Investing:
         - Book Value per Share: {intrinsic_value}
         - Current Price: {current_price}
         - Margin of Safety: {margin_of_safety}%
@@ -105,7 +103,6 @@ def evaluate_stock():
         revenue_growth = info.get('revenueGrowth', 'N/A')
         profit_margins = info.get('profitMargins', 'N/A')
         growth_summary = f"""
-        Growth Investing:
         - Revenue Growth: {revenue_growth}
         - Profit Margins: {profit_margins}
         """
@@ -116,15 +113,19 @@ def evaluate_stock():
         payout_ratio = info.get('payoutRatio', 'N/A')
         beta = info.get('beta', 'N/A')
         flowchart_summary = f"""
-        Modified Investment Flowchart:
         - Payout Ratio: {payout_ratio}
         - Beta: {beta}
         """
         evaluation_results.append(flowchart_summary)
 
-    # Generate AI report using Cohere
+    # Final Verdict
+    final_verdict = "DON'T BUY"
+    if 'BUY' in evaluation_methods:  # Assuming a condition for Buy. You can adjust this logic as per your evaluation
+        final_verdict = "BUY"
+
+    # AI Report Generation with Cohere
     detailed_report_input = "\n".join(evaluation_results)
-    ai_report = generate_report_with_cohere(stock_name, detailed_report_input)
+    ai_report = generate_report_with_cohere(stock_name, brief_report, detailed_report_input, final_verdict)
 
     return jsonify({'message': 'Stock evaluation completed!', 'report': ai_report})
 
@@ -136,7 +137,14 @@ def send_to_ai():
     evaluation_methods = data.get('evaluationMethods')
     detailed_report = data.get('detailedReport')
 
-    ai_report = generate_report_with_cohere(stock_name, detailed_report)
+    # Assuming you have the necessary variables like brief_report, final_verdict, etc.
+    brief_report = "Microsoft Corporation (MS) stock should not be purchased at this time."  # Example brief report
+    final_verdict = "DON'T BUY"  # Example final verdict
+
+    # Generate the detailed report input based on the evaluation results (like your fundamental, technical, etc. metrics)
+    detailed_report_input = "\n".join(detailed_report)  # Assuming 'detailedReport' is a list or string
+
+    ai_report = generate_report_with_cohere(stock_name, brief_report, detailed_report_input, final_verdict)
     return jsonify({'report': ai_report})
 
 def is_valid_stock(stock_name):
@@ -153,33 +161,38 @@ def is_valid_stock(stock_name):
 def generate_report_with_cohere(stock_name, brief_report, detailed_report_input, final_verdict):
     try:
         prompt = f"""
-        # Brief Report:
-        {brief_report}
-        
-        # Detailed Parameters Checked:
-        {detailed_report_input}
-        
-        # Final Verdict:
-        {final_verdict}
+        Provide a concise stock evaluation report for {stock_name} with the following sections:
 
-        Provide the report in a clean format:
-        - The brief report should be concise and professional.
-        - The detailed parameters should be listed clearly, showing the evaluation metrics.
-        - The final verdict should include a recommendation: Buy (green text) or Don't Buy (red text).
+        1. **Brief Report**: Summarize the stock evaluation with a focus on key highlights and a recommendation based on the data.
+        2. **Detailed Parameters Checked**: List all parameters checked with their values (if available) in a simple format.
+        3. **Final Verdict**: Provide a clear "BUY" or "DON'T BUY" recommendation based on the analysis.
+
+        Don't include any additional commentary, explanations, or extra details beyond what's asked.
+        
+        ## Brief Report:
+        {brief_report}
+
+        ## Detailed Parameters Checked:
+        {detailed_report_input}
+
+        ## Final Verdict:
+        {final_verdict}
         """
-    
+
         response = co.generate(
             model='command',  
             prompt=prompt,
-            max_tokens=500,
+            max_tokens=500,  # Limit the response size to avoid exceeding the token limit
             temperature=0.7
         )
 
         # Extract the report from the Cohere response
         ai_report = response.generations[0].text.strip()
+
         return ai_report
     except Exception as e:
         return f"Error generating report: {str(e)}"
+
 
 if __name__ == '__main__':
     app.run(debug=True)
